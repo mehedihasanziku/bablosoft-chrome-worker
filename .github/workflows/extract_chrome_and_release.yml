@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: 'Version number to use'
+        description: 'Enter Bablosoft Engine Version'
         required: true
         default: '28.8.1'
 
