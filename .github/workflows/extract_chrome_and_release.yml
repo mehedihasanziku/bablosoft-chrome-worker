@@ -50,7 +50,7 @@ jobs:
       - name: Zip extracted chrome folder silently with custom name
         run: |
           cd extracted_chrome
-          zip -rq ../chrome_${{ steps.chrome_version.outputs.chrome_version }}.zip chrome
+          zip -rq ../../chrome_${{ steps.chrome_version.outputs.chrome_version }}.zip ./*
 
       - name: Upload to GitHub Release
         uses: softprops/action-gh-release@v2
