@@ -34,7 +34,39 @@ jobs:
           echo "worker=$highest" >> $GITHUB_OUTPUT
           echo "Found highest worker: $highest"
 
+      - name: Extract manifest filename only from ZIP
+        id: extract_manifest_name
+        run: |
+          # List files in chrome folder inside highest worker folder
+          manifest_file=$(unzip -Z1 FastExecuteScript.zip | grep "^${{ steps.get_worker.outputs.worker }}/chrome/.*\.manifest" | head -n1)
+          if [ -z "$manifest_file" ]; then
+            echo "No manifest file found!"
+            exit 1
+          fi
+          # Get manifest filename without path and extension
+          manifest_basename=$(basename "$manifest_file" .manifest)
+          echo "manifest_file=$manifest_file" >> $GITHUB_OUTPUT
+          echo "chrome_version=$manifest_basename" >> $GITHUB_OUTPUT
+          echo "Chrome version from manifest: $manifest_basename"
+
+      - name: Check for existing release with Chrome version
+        id: check_release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CHROME_VERSION: ${{ steps.extract_manifest_name.outputs.chrome_version }}
+          REPO: ${{ github.repository }}
+        run: |
+          releases=$(curl -s -H "Authorization: Bearer $GITHUB_TOKEN" \
+            "https://api.github.com/repos/$REPO/releases")
+
+          exists=$(echo "$releases" | jq --arg ver "$CHROME_VERSION" \
+            '[.[] | select(.name | contains($ver))] | length')
+
+          echo "release_exists=$exists" >> $GITHUB_OUTPUT
+          echo "Release with Chrome version $CHROME_VERSION exists? $exists"
+
       - name: Extract full chrome folder only
+        if: steps.check_release.outputs.release_exists == '0'
         run: |
           mkdir extracted_chrome
           files=$(unzip -Z1 FastExecuteScript.zip | grep "^${{ steps.get_worker.outputs.worker }}/chrome/")
@@ -43,27 +75,25 @@ jobs:
             unzip -j -q FastExecuteScript.zip "$file" -d "extracted_chrome/$(dirname "$target_file")"
           done
 
-      - name: Get Chrome version from manifest file
-        id: chrome_version
-        run: |
-          manifest_file=$(find extracted_chrome/chrome -maxdepth 1 -type f -name '*.manifest' | head -n1)
-          echo "Manifest file found: $manifest_file"
-          chrome_ver=$(basename "$manifest_file" .manifest)
-          echo "chrome_version=$chrome_ver" >> $GITHUB_OUTPUT
-
       - name: Zip extracted chrome folder silently with custom name
+        if: steps.check_release.outputs.release_exists == '0'
         run: |
           cd extracted_chrome
-          zip -rq ../chrome_${{ steps.chrome_version.outputs.chrome_version }}.zip chrome
+          zip -rq ../chrome_${{ steps.extract_manifest_name.outputs.chrome_version }}.zip chrome
 
       - name: Upload to GitHub Release
+        if: steps.check_release.outputs.release_exists == '0'
         uses: softprops/action-gh-release@v2
         with:
-          name: "BAS Engine ${{ steps.vars.outputs.version }} - Chrome ${{ steps.chrome_version.outputs.chrome_version }}"
+          name: "BAS Engine ${{ steps.vars.outputs.version }} - Chrome ${{ steps.extract_manifest_name.outputs.chrome_version }}"
           tag_name: "${{ steps.vars.outputs.date }}-v${{ steps.vars.outputs.version }}"
-          files: chrome_${{ steps.chrome_version.outputs.chrome_version }}.zip
+          files: chrome_${{ steps.extract_manifest_name.outputs.chrome_version }}.zip
           body: |
             BAS Engine Version: ${{ steps.vars.outputs.version }}
-            Chrome Version: ${{ steps.chrome_version.outputs.chrome_version }}
+            Chrome Version: ${{ steps.extract_manifest_name.outputs.chrome_version }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Skip release message
+        if: steps.check_release.outputs.release_exists != '0'
+        run: echo "Release with Chrome version ${{ steps.extract_manifest_name.outputs.chrome_version }} already exists. Skipping release upload."
