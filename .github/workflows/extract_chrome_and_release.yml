@@ -2,6 +2,11 @@ name: Extract Chrome and Upload to Release
 
 on:
   workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version number to use'
+        required: true
+        default: '28.8.1'
 
 permissions:
   contents: write
@@ -14,7 +19,7 @@ jobs:
       - name: Set Bablosoft version info
         id: vars
         run: |
-          echo "version=28.8.1" >> $GITHUB_OUTPUT
+          echo "version=${{ github.event.inputs.version }}" >> $GITHUB_OUTPUT
           echo "date=$(date +'%Y%m%d')" >> $GITHUB_OUTPUT
 
       - name: Download FastExecuteScript ZIP
@@ -41,7 +46,6 @@ jobs:
       - name: Get Chrome version from manifest file
         id: chrome_version
         run: |
-          # Find the manifest file inside extracted_chrome/chrome
           manifest_file=$(find extracted_chrome/chrome -maxdepth 1 -type f -name '*.manifest' | head -n1)
           echo "Manifest file found: $manifest_file"
           chrome_ver=$(basename "$manifest_file" .manifest)
@@ -59,7 +63,7 @@ jobs:
           tag_name: "${{ steps.vars.outputs.date }}"
           files: chrome_${{ steps.chrome_version.outputs.chrome_version }}.zip
           body: |
-              BAS Engine Version: ${{ steps.vars.outputs.version }}  
-              Chrome Version: ${{ steps.chrome_version.outputs.chrome_version }}
+            BAS Engine Version: ${{ steps.vars.outputs.version }}
+            Chrome Version: ${{ steps.chrome_version.outputs.chrome_version }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
