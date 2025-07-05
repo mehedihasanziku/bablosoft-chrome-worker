@@ -60,7 +60,7 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           name: "BAS Engine ${{ steps.vars.outputs.version }} - Chrome ${{ steps.chrome_version.outputs.chrome_version }}"
-          tag_name: "${{ steps.vars.outputs.date }}"
+          tag_name: "${{ steps.vars.outputs.date }}-v${{ steps.vars.outputs.version }}"
           files: chrome_${{ steps.chrome_version.outputs.chrome_version }}.zip
           body: |
             BAS Engine Version: ${{ steps.vars.outputs.version }}
