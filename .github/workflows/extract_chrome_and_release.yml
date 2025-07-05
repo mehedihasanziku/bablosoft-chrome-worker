@@ -3,6 +3,9 @@ name: Extract Chrome and Upload to Release
 on:
   workflow_dispatch:
 
+permissions:
+  contents: write  # Required for GITHUB_TOKEN to create release
+
 jobs:
   extract-and-release:
     runs-on: ubuntu-latest
@@ -14,11 +17,11 @@ jobs:
           echo "version=28.8.1" >> $GITHUB_OUTPUT
           echo "date=$(date +'%Y-%m-%d')" >> $GITHUB_OUTPUT
 
-      - name: Download ZIP
+      - name: Download FastExecuteScript ZIP
         run: |
           curl -L -o FastExecuteScript.zip "http://downloads.bablosoft.com/distr/FastExecuteScriptProtected64/${{ steps.vars.outputs.version }}/FastExecuteScriptProtected.x64.zip"
 
-      - name: Get highest Worker.xx folder
+      - name: Get highest Worker.xx folder in ZIP
         id: get_worker
         run: |
           folders=$(unzip -Z1 FastExecuteScript.zip | grep -oE '^Worker\.[0-9]+/' | sort -Vr | uniq)
@@ -34,9 +37,9 @@ jobs:
         run: |
           cd extracted/${{ steps.get_worker.outputs.worker }}
           zip -r chrome_folder.zip chrome
-          mv chrome_folder.zip ../../../chrome_${{ steps.vars.outputs.version }}_${{ steps.vars.outputs.date }}.zip
+          mv chrome_folder.zip $GITHUB_WORKSPACE/chrome_${{ steps.vars.outputs.version }}_${{ steps.vars.outputs.date }}.zip
 
-      - name: Upload chrome zip to GitHub Release
+      - name: Upload to GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           name: "Chrome Build ${{ steps.vars.outputs.version }} - ${{ steps.vars.outputs.date }}"
