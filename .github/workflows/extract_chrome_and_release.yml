@@ -58,5 +58,9 @@ jobs:
           name: "BAS Engine ${{ steps.vars.outputs.version }} - Chrome ${{ steps.chrome_version.outputs.chrome_version }}"
           tag_name: "${{ steps.vars.outputs.date }}"
           files: chrome_${{ steps.chrome_version.outputs.chrome_version }}.zip
+          body: |
+              Release of BAS Engine version ${{ steps.vars.outputs.version }}  
+              Chrome build version ${{ steps.chrome_version.outputs.chrome_version }}  
+              Built on ${{ steps.vars.outputs.date }}.
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
