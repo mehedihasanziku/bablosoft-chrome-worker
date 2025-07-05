@@ -1,0 +1,46 @@
+name: Extract Chrome and Upload to Release
+
+on:
+  workflow_dispatch:
+
+jobs:
+  extract-and-release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Set version info
+        id: vars
+        run: |
+          echo "version=28.8.1" >> $GITHUB_OUTPUT
+          echo "date=$(date +'%Y-%m-%d')" >> $GITHUB_OUTPUT
+
+      - name: Download ZIP
+        run: |
+          curl -L -o FastExecuteScript.zip "http://downloads.bablosoft.com/distr/FastExecuteScriptProtected64/${{ steps.vars.outputs.version }}/FastExecuteScriptProtected.x64.zip"
+
+      - name: Get highest Worker.xx folder
+        id: get_worker
+        run: |
+          folders=$(unzip -Z1 FastExecuteScript.zip | grep -oE '^Worker\.[0-9]+/' | sort -Vr | uniq)
+          highest=$(echo "$folders" | head -n1 | sed 's:/$::')
+          echo "worker=$highest" >> $GITHUB_OUTPUT
+          echo "Found highest worker: $highest"
+
+      - name: Extract only chrome folder
+        run: |
+          unzip -q FastExecuteScript.zip "${{ steps.get_worker.outputs.worker }}/chrome/*" -d extracted
+
+      - name: Zip chrome folder
+        run: |
+          cd extracted/${{ steps.get_worker.outputs.worker }}
+          zip -r chrome_folder.zip chrome
+          mv chrome_folder.zip ../../../chrome_${{ steps.vars.outputs.version }}_${{ steps.vars.outputs.date }}.zip
+
+      - name: Upload chrome zip to GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: "Chrome Build ${{ steps.vars.outputs.version }} - ${{ steps.vars.outputs.date }}"
+          tag_name: "chrome-${{ steps.vars.outputs.version }}-${{ steps.vars.outputs.date }}"
+          files: chrome_${{ steps.vars.outputs.version }}_${{ steps.vars.outputs.date }}.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
