@@ -1,10 +1,10 @@
-name: Extract Chrome and Upload to Release
+name: Extract Full Chrome Folder and Upload Release
 
 on:
   workflow_dispatch:
 
 permissions:
-  contents: write  # Required for GITHUB_TOKEN to create release
+  contents: write
 
 jobs:
   extract-and-release:
@@ -29,15 +29,22 @@ jobs:
           echo "worker=$highest" >> $GITHUB_OUTPUT
           echo "Found highest worker: $highest"
 
-      - name: Extract only chrome folder
+      - name: Extract full chrome folder only
         run: |
-          unzip -q FastExecuteScript.zip "${{ steps.get_worker.outputs.worker }}/chrome/*" -d extracted
+          # Extract only chrome files to extracted_chrome preserving structure but removing Worker.xx prefix
+          mkdir extracted_chrome
+          # List all files under Worker.xx/chrome/
+          files=$(unzip -Z1 FastExecuteScript.zip | grep "^${{ steps.get_worker.outputs.worker }}/chrome/")
+          # Extract each file, stripping the Worker.xx/ prefix to place directly under extracted_chrome/
+          for file in $files; do
+            target_file=${file#${{ steps.get_worker.outputs.worker }}/}
+            unzip -j -q FastExecuteScript.zip "$file" -d "extracted_chrome/$(dirname "$target_file")"
+          done
 
-      - name: Zip chrome folder
+      - name: Zip extracted chrome folder (without parent Worker.xx)
         run: |
-          cd extracted/${{ steps.get_worker.outputs.worker }}
-          zip -r chrome_folder.zip chrome
-          mv chrome_folder.zip $GITHUB_WORKSPACE/chrome_${{ steps.vars.outputs.version }}_${{ steps.vars.outputs.date }}.zip
+          cd extracted_chrome
+          zip -r ../chrome_${{ steps.vars.outputs.version }}_${{ steps.vars.outputs.date }}.zip chrome
 
       - name: Upload to GitHub Release
         uses: softprops/action-gh-release@v2
