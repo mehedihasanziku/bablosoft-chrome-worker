@@ -15,7 +15,7 @@ jobs:
         id: vars
         run: |
           echo "version=28.8.1" >> $GITHUB_OUTPUT
-          echo "date=$(date +'%Y-%m-%d')" >> $GITHUB_OUTPUT
+          echo "date=$(date +'%Y%m%d')" >> $GITHUB_OUTPUT
 
       - name: Download FastExecuteScript ZIP
         run: |
@@ -50,13 +50,13 @@ jobs:
       - name: Zip extracted chrome folder silently with custom name
         run: |
           cd extracted_chrome
-          zip -rq ../BAS_Engine_${{ steps.vars.outputs.version }}_Chrome_${{ steps.chrome_version.outputs.chrome_version }}.zip chrome
+          zip -rq ../chrome_${{ steps.chrome_version.outputs.chrome_version }}.zip chrome
 
       - name: Upload to GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           name: "BAS Engine ${{ steps.vars.outputs.version }} - Chrome ${{ steps.chrome_version.outputs.chrome_version }}"
-          tag_name: "BAS_Engine_${{ steps.vars.outputs.version }}_Chrome_${{ steps.chrome_version.outputs.chrome_version }}"
-          files: BAS_Engine_${{ steps.vars.outputs.version }}_Chrome_${{ steps.chrome_version.outputs.chrome_version }}.zip
+          tag_name: "${{ steps.vars.outputs.date }}"
+          files: chrome_${{ steps.chrome_version.outputs.chrome_version }}.zip
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
