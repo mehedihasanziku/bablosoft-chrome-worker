@@ -1,4 +1,4 @@
-name: Extract Full Chrome Folder and Upload Release
+name: Extract Chrome and Upload to Release
 
 on:
   workflow_dispatch:
@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Set version info
+      - name: Set Bablosoft version info
         id: vars
         run: |
           echo "version=28.8.1" >> $GITHUB_OUTPUT
@@ -31,26 +31,32 @@ jobs:
 
       - name: Extract full chrome folder only
         run: |
-          # Extract only chrome files to extracted_chrome preserving structure but removing Worker.xx prefix
           mkdir extracted_chrome
-          # List all files under Worker.xx/chrome/
           files=$(unzip -Z1 FastExecuteScript.zip | grep "^${{ steps.get_worker.outputs.worker }}/chrome/")
-          # Extract each file, stripping the Worker.xx/ prefix to place directly under extracted_chrome/
           for file in $files; do
             target_file=${file#${{ steps.get_worker.outputs.worker }}/}
             unzip -j -q FastExecuteScript.zip "$file" -d "extracted_chrome/$(dirname "$target_file")"
           done
 
-      - name: Zip extracted chrome folder (without parent Worker.xx)
+      - name: Get Chrome version from manifest file
+        id: chrome_version
+        run: |
+          # Find the manifest file inside extracted_chrome/chrome
+          manifest_file=$(find extracted_chrome/chrome -maxdepth 1 -type f -name '*.manifest' | head -n1)
+          echo "Manifest file found: $manifest_file"
+          chrome_ver=$(basename "$manifest_file" .manifest)
+          echo "chrome_version=$chrome_ver" >> $GITHUB_OUTPUT
+
+      - name: Zip extracted chrome folder silently with custom name
         run: |
           cd extracted_chrome
-          zip -r ../chrome_${{ steps.vars.outputs.version }}_${{ steps.vars.outputs.date }}.zip chrome
+          zip -rq ../BAS_Engine_${{ steps.vars.outputs.version }}_Chrome_${{ steps.chrome_version.outputs.chrome_version }}.zip chrome
 
       - name: Upload to GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          name: "Chrome Build ${{ steps.vars.outputs.version }} - ${{ steps.vars.outputs.date }}"
-          tag_name: "chrome-${{ steps.vars.outputs.version }}-${{ steps.vars.outputs.date }}"
-          files: chrome_${{ steps.vars.outputs.version }}_${{ steps.vars.outputs.date }}.zip
+          name: "BAS Engine ${{ steps.vars.outputs.version }} - Chrome ${{ steps.chrome_version.outputs.chrome_version }}"
+          tag_name: "BAS_Engine_${{ steps.vars.outputs.version }}_Chrome_${{ steps.chrome_version.outputs.chrome_version }}"
+          files: BAS_Engine_${{ steps.vars.outputs.version }}_Chrome_${{ steps.chrome_version.outputs.chrome_version }}.zip
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
