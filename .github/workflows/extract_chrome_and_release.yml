@@ -93,6 +93,7 @@ jobs:
             Chrome Version: ${{ steps.extract_manifest_name.outputs.chrome_version }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: mehedihasanziku/bablosoft-chrome-worker-public
 
       - name: Skip release message
         if: steps.check_release.outputs.release_exists != '0'
