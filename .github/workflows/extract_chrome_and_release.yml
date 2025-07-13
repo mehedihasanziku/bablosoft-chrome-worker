@@ -20,7 +20,7 @@ jobs:
         id: vars
         run: |
           echo "version=${{ github.event.inputs.version }}" >> $GITHUB_OUTPUT
-          echo "date=$(date +'%Y%m%d')" >> $GITHUB_OUTPUT
+          echo "date=pending" >> $GITHUB_OUTPUT
 
       - name: Download FastExecuteScript ZIP
         run: |
@@ -68,12 +68,25 @@ jobs:
       - name: Extract full chrome folder only
         if: steps.check_release.outputs.release_exists == '0'
         run: |
-          mkdir extracted_chrome
+          mkdir -p extracted_chrome
           files=$(unzip -Z1 FastExecuteScript.zip | grep "^${{ steps.get_worker.outputs.worker }}/chrome/")
           for file in $files; do
             target_file=${file#${{ steps.get_worker.outputs.worker }}/}
             unzip -j -q FastExecuteScript.zip "$file" -d "extracted_chrome/$(dirname "$target_file")"
           done
+
+      - name: Update date based on worker.exe modified time
+        id: set_date
+        if: steps.check_release.outputs.release_exists == '0'
+        run: |
+          file=$(find extracted_chrome -iname worker.exe | head -n1)
+          if [ -z "$file" ]; then
+            echo "worker.exe not found!"
+            exit 1
+          fi
+          mod_time=$(date -u -r "$file" +%Y%m%d)
+          echo "date=$mod_time" >> $GITHUB_OUTPUT
+          echo "Chrome worker.exe modified date: $mod_time"
 
       - name: Zip extracted chrome folder silently with custom name
         if: steps.check_release.outputs.release_exists == '0'
@@ -86,7 +99,7 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           name: "BAS Engine ${{ steps.vars.outputs.version }} - Chrome ${{ steps.extract_manifest_name.outputs.chrome_version }}"
-          tag_name: "${{ steps.vars.outputs.date }}-v${{ steps.vars.outputs.version }}"
+          tag_name: "${{ steps.set_date.outputs.date }}-v${{ steps.vars.outputs.version }}"
           files: chrome_${{ steps.extract_manifest_name.outputs.chrome_version }}.zip
           body: |
             BAS Engine Version: ${{ steps.vars.outputs.version }}
