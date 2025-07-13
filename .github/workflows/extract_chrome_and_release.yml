@@ -99,11 +99,12 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           name: "BAS Engine ${{ steps.vars.outputs.version }} - Chrome ${{ steps.extract_manifest_name.outputs.chrome_version }}"
-          tag_name: "${{ steps.set_date.outputs.date }}-v${{ steps.vars.outputs.version }}"
+          tag_name: "v${{ steps.vars.outputs.version }}"
           files: chrome_${{ steps.extract_manifest_name.outputs.chrome_version }}.zip
           body: |
             BAS Engine Version: ${{ steps.vars.outputs.version }}
             Chrome Version: ${{ steps.extract_manifest_name.outputs.chrome_version }}
+            Released On: ${{ steps.set_date.outputs.date }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
