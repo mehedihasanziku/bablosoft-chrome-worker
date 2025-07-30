@@ -77,31 +77,23 @@ jobs:
           
       - name: Extract FingerprintSwitcher module
         run: |
-          mkdir -p extracted_fpswitcher
+          mkdir -p extracted_fpswitcher/FingerprintSwitcher
 
-          # Find FingerprintSwitcher files directly under modules/
           files=$(unzip -Z1 FastExecuteScript.zip | grep "^modules/FingerprintSwitcher/")
-
-          echo "Found files:"
           echo "$files"
 
           for file in $files; do
-            target_file=${file#modules/}
-            unzip -j -q FastExecuteScript.zip "$file" -d "extracted_fpswitcher/$(dirname "$target_file")"
+            rel_path=${file#modules/FingerprintSwitcher/}
+            unzip -j -q FastExecuteScript.zip "$file" -d "extracted_fpswitcher/FingerprintSwitcher/$(dirname "$rel_path")"
           done
 
-          # Now zip the FingerprintSwitcher folder
-          cd extracted_fpswitcher
-          zip -rq "../BAS Engine ${{ steps.vars.outputs.version }}_FingerprintSwitcher_Module.zip" FingerprintSwitcher
-
-
-
-      - name: Upload FingerprintSwitcher as 1-day artifact
+      - name: Upload FingerprintSwitcher folder as artifact
         uses: actions/upload-artifact@v4
         with:
           name: BAS Engine ${{ steps.vars.outputs.version }}_FingerprintSwitcher_Module
-          path: BAS Engine ${{ steps.vars.outputs.version }}_FingerprintSwitcher_Module.zip
+          path: extracted_fpswitcher/FingerprintSwitcher
           retention-days: 1
+
 
       - name: Update date based on worker.exe modified time
         id: set_date
