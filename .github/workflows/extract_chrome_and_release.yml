@@ -78,23 +78,22 @@ jobs:
       - name: Extract FingerprintSwitcher module
         run: |
           mkdir -p extracted_fpswitcher
-          
-          # Find the full path to FingerprintSwitcher/ folder in zip
-          prefix="${{ steps.get_worker.outputs.worker }}/modules/FingerprintSwitcher/"
-          files=$(unzip -Z1 FastExecuteScript.zip | grep "^$prefix")
 
-          echo "Found files in FingerprintSwitcher:"
+          # Find FingerprintSwitcher files directly under modules/
+          files=$(unzip -Z1 FastExecuteScript.zip | grep "^modules/FingerprintSwitcher/")
+
+          echo "Found files:"
           echo "$files"
 
           for file in $files; do
-            # Remove the common prefix (e.g., Worker.27/modules/)
-            target_file=${file#${{ steps.get_worker.outputs.worker }}/modules/}
+            target_file=${file#modules/}
             unzip -j -q FastExecuteScript.zip "$file" -d "extracted_fpswitcher/$(dirname "$target_file")"
           done
 
-          # Zip only the FingerprintSwitcher folder
+          # Now zip the FingerprintSwitcher folder
           cd extracted_fpswitcher
           zip -rq "../BAS Engine ${{ steps.vars.outputs.version }}_FingerprintSwitcher_Module.zip" FingerprintSwitcher
+
 
 
       - name: Upload FingerprintSwitcher as 1-day artifact
